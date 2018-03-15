@@ -25,6 +25,7 @@
 namespace Novutec\WhoisParser\Templates\Type;
 
 use Novutec\WhoisParser\Exception\RateLimitException;
+use Novutec\WhoisParser\Result\Result;
 
 /**
  * WhoisParser AbstractTemplate
@@ -80,7 +81,7 @@ abstract class AbstractTemplate
      * Reading data from properties
      *
      * @param  string $name
-     * @return void
+     * @return mixed
      */
     public function __get($name)
     {
@@ -93,10 +94,11 @@ abstract class AbstractTemplate
 
     /**
      * Load Template
-     * 
+     *
      * Returns a template object, if not null.
      *
-     * @param  string $template
+     * @param string $template
+     * @param string|null $customNamespace
      * @return mixed
      */
     public static function factory($template, $customNamespace = null)
@@ -125,17 +127,20 @@ abstract class AbstractTemplate
      * @return void
      */
     public function postProcess(&$WhoisParser)
-    {}
+    {
 
+    }
 
     /**
-     * @param \Novutec\WhoisParser\Result\Result $result
-     * @param $rawdata
-     * @throws \Novutec\WhoisParser\Exception\RateLimitException
+     * @param Result $result
+     * @param string $rawdata
      */
     public abstract function parse($result, $rawdata);
 
-
+    /**
+     * @param $rawdata
+     * @throws RateLimitException
+     */
     protected function parseRateLimit($rawdata)
     {
         if (isset ($this->rateLimit) && strlen($this->rateLimit)) {
@@ -145,7 +150,6 @@ abstract class AbstractTemplate
             }
         }
     }
-
 
     /**
      * Perform any necessary translation on the raw data before processing (for example, re-encoding to UTF-8)

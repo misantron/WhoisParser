@@ -56,7 +56,7 @@ class Parser
      * @var object
      * @access protected
      */
-    protected $Config;
+    protected $config;
 
     /**
      * Query string sent to the WhoisParser
@@ -64,7 +64,7 @@ class Parser
      * @var object
      * @access protected
      */
-    protected $Query;
+    protected $query;
 
     /**
      * Raw output from whois server unformatted
@@ -77,10 +77,10 @@ class Parser
     /**
      * WhoisParserResult object
      * 
-     * @var \Novutec\WhoisParser\Result\Result
+     * @var Result
      * @access protected
      */
-    protected $Result;
+    protected $result;
 
     /**
      * Should the exceptions be thrown or caugth and trapped in the response?
@@ -97,7 +97,7 @@ class Parser
      * @var array
      * @access protected
      */
-    protected $specialWhois = array();
+    protected $specialWhois = [];
 
     /**
      * Output format 'object', 'array', 'json', 'serialize' or 'xml'
@@ -129,7 +129,7 @@ class Parser
      *
      * @var array List of servers which are currently rate limited
      */
-    protected $rateLimitedServers = array();
+    protected $rateLimitedServers = [];
 
     protected $customConfigFile = null;
 
@@ -142,8 +142,7 @@ class Parser
     /**
      * @var array Custom domain groups for DomainParser
      */
-    protected $customDomainGroups = array();
-
+    protected $customDomainGroups = [];
 
     /**
      * Creates a WhoisParser object
@@ -168,79 +167,81 @@ class Parser
     }
 
     /**
-	 * Lookup an IP address (ipv4 and ipv6) and domain names
-	 *
-	 * @throws AbstractException if throwExceptions = true
-	 * @param  string $query
-	 * @return mixed
-	 */
+     * Lookup an IP address (ipv4 and ipv6) and domain names
+     *
+     * @throws AbstractException if throwExceptions = true
+     * @param  string $query
+     * @return mixed
+     * @throws \Novutec\DomainParser\instance
+     */
     public function lookup($query = '')
     {
-        $this->Result = new Result();
-        $this->Config = new Config($this->specialWhois, $this->customConfigFile);
+        if (empty($query)) {
+            throw new NoQueryException('No lookup query given');
+        }
+
+        $this->result = new Result();
+        $this->config = new Config($this->specialWhois, $this->customConfigFile);
         
         try {
-            if ($query == '') {
-                throw new NoQueryException('No lookup query given');
-            }
             
             $this->prepare($query);
             
-            if (isset($this->Query->ip)) {
-                $config = $this->Config->get('iana');
+            if (isset($this->query->ip)) {
+                $config = $this->config->get('iana');
             } else {
-                if (isset($this->Query->tldGroup)) {
-                    $config = $this->Config->get($this->Query->tldGroup, $this->Query->idnTld);
+                if (isset($this->query->tldGroup)) {
+                    $config = $this->config->get($this->query->tldGroup, $this->query->idnTld);
                 } else {
-                    $config = $this->Config->get($this->Query->asn);
+                    $config = $this->config->get($this->query->asn);
                 }
                 
-                if ($config['server'] == '' || $this->Query->domain == '') {
-                    $config = $this->Config->get('iana');
+                if ($config['server'] == '' || $this->query->domain == '') {
+                    $config = $this->config->get('iana');
                 }
             }
             
-            $this->Config->setCurrent($config);
+            $this->config->setCurrent($config);
             $this->call();
         } catch (AbstractException $e) {
             if ($this->throwExceptions) {
                 throw $e;
             }
             
-            $this->Result->addItem('exception', $e->getMessage());
-            $this->Result->addItem('rawdata', $this->rawdata);
+            $this->result->addItem('exception', $e->getMessage());
+            $this->result->addItem('rawdata', $this->rawdata);
             
-            if (isset($this->Query)) {
+            if (isset($this->query)) {
                 
-                if (isset($this->Query->ip)) {
-                    $this->Result->addItem('name', $this->Query->ip);
+                if (isset($this->query->ip)) {
+                    $this->result->addItem('name', $this->query->ip);
                 } else {
-                    $this->Result->addItem('name', $this->Query->fqdn);
+                    $this->result->addItem('name', $this->query->fqdn);
                 }
             } else {
-                $this->Result->addItem('name', $query);
+                $this->result->addItem('name', $query);
             }
         }
         
         // call cleanUp method
-        $this->Result->cleanUp($this->Config->getCurrent(), $this->dateformat);
+        $this->result->cleanUp($this->config->getCurrent(), $this->dateformat);
         
         // preparing output of Result by format
         switch ($this->format) {
             case 'json':
-                return $this->Result->toJson();
+                return $this->result->toJson();
                 break;
             case 'serialize':
-                return $this->Result->serialize();
+                return $this->result->serialize();
                 break;
             case 'array':
-                return $this->Result->toArray();
+                return $this->result->toArray();
                 break;
             case 'xml':
-                return $this->Result->toXml();
+                return $this->result->toXml();
                 break;
             default:
-                return $this->Result;
+                return $this->result;
         }
     }
 
@@ -253,21 +254,20 @@ class Parser
      */
     private function prepare($query)
     {
-        // check if given query is an IP address and AS number or possible
-        // domain name
+        // check if given query is an IP address and AS number or possible domain name
         if ($this->bin2ip($this->ip2bin($query)) === $query) {
-            $this->Query = new \stdClass();
-            $this->Query->ip = $query;
+            $this->query = new \stdClass();
+            $this->query->ip = $query;
         } elseif (preg_match('/^AS[0-9]*$/im', $query)) {
-            $this->Query = new \stdClass();
-            $this->Query->asn = $query;
+            $this->query = new \stdClass();
+            $this->query->asn = $query;
         } else {
-            $Parser = new \Novutec\DomainParser\Parser();
-            $Parser->setCustomDomainGroups($this->customDomainGroups);
+            $parser = new \Novutec\DomainParser\Parser();
+            $parser->setCustomDomainGroups($this->customDomainGroups);
             if ($this->cachePath !== null) {
-                $Parser->setCachePath($this->cachePath);
+                $parser->setCachePath($this->cachePath);
             }
-            $this->Query = $Parser->parse(filter_var($query, FILTER_SANITIZE_STRING));
+            $this->query = $parser->parse(filter_var($query, FILTER_SANITIZE_STRING));
         }
     }
 
@@ -282,10 +282,10 @@ class Parser
     public function call($query = '')
     {
         if ($query != '') {
-            $this->Query = filter_var($query, FILTER_SANITIZE_STRING);
+            $this->query = filter_var($query, FILTER_SANITIZE_STRING);
         }
         
-        $Config = $this->Config->getCurrent();
+        $Config = $this->config->getCurrent();
         $Adapter = AbstractAdapter::factory($Config['adapter'], $this->proxyConfigFile, $this->customAdapterNamespace);
         $server = $Config['server'];
 
@@ -294,7 +294,7 @@ class Parser
         }
 
         if ($Adapter instanceof AbstractAdapter) {
-            $this->rawdata = $Adapter->call($this->Query, $Config);
+            $this->rawdata = $Adapter->call($this->query, $Config);
             $this->parse();
         } else {
             throw new NoAdapterException('Adapter '. $Config['adapter'] .' could not be found');
@@ -310,17 +310,17 @@ class Parser
      */
     private function parse()
     {
-        $Config = $this->Config->getCurrent();
+        $Config = $this->config->getCurrent();
 
         $Template = AbstractTemplate::factory($Config['template'], $this->customTemplateNamespace);
 
         // If Template is null then we do not have a template for that, but we
         // can still proceed to the end with just the rawdata
         if ($Template instanceof AbstractTemplate) {
-            $this->Result->template[$Config['server']] = $Config['template'];
+            $this->result->template[$Config['server']] = $Config['template'];
             $this->rawdata = $Template->translateRawData($this->rawdata, $Config);
             try {
-                $Template->parse($this->Result, $this->rawdata);
+                $Template->parse($this->result, $this->rawdata);
             } catch (RateLimitException $e) {
                 $server = $Config['server'];
                 if (!in_array($server, $this->rateLimitedServers)) {
@@ -331,28 +331,28 @@ class Parser
             
             // set rawdata to Result - this happens here because sometimes we
             // have to fix the rawdata as well in postProcess
-            $this->Result->addItem('rawdata', $this->rawdata);
+            $this->result->addItem('rawdata', $this->rawdata);
 
             // set registered to Result
-            $this->Result->addItem('registered', isset($this->Result->registered) ? $this->Result->registered : false);
+            $this->result->addItem('registered', isset($this->result->registered) ? $this->result->registered : false);
             
-            if (! isset($this->Result->whoisserver)) {
-                $this->Result->addItem('whoisserver', $Config['server']);
+            if (! isset($this->result->whoisserver)) {
+                $this->result->addItem('whoisserver', $Config['server']);
             }
             
             // start post processing
             $Template->postProcess($this);
             
             // set name to Result
-            if (isset($this->Query->tld) && ! isset($this->Query->fqdn)) {
-                $this->Result->addItem('name', $this->Query->tld);
-            } elseif (isset($this->Query->ip)) {
-                $this->Result->addItem('name', $this->Query->ip);
-            } elseif (isset($this->Query->asn)) {
-                $this->Result->addItem('name', $this->Query->asn);
+            if (isset($this->query->tld) && ! isset($this->query->fqdn)) {
+                $this->result->addItem('name', $this->query->tld);
+            } elseif (isset($this->query->ip)) {
+                $this->result->addItem('name', $this->query->ip);
+            } elseif (isset($this->query->asn)) {
+                $this->result->addItem('name', $this->query->asn);
             } else {
-                $this->Result->addItem('name', $this->Query->fqdn);
-                $this->Result->addItem('idnName', $this->Query->idnFqdn);
+                $this->result->addItem('name', $this->query->fqdn);
+                $this->result->addItem('idnName', $this->query->idnFqdn);
             }
         } else {
             throw new NoTemplateException('Template '. $Config['template'] .' could not be found');
@@ -433,7 +433,7 @@ class Parser
      */
     public function getResult()
     {
-        return $this->Result;
+        return $this->result;
     }
 
     /**
@@ -443,7 +443,7 @@ class Parser
      */
     public function getConfig()
     {
-        return $this->Config;
+        return $this->config;
     }
 
     /**
@@ -453,7 +453,7 @@ class Parser
      */
     public function getQuery()
     {
-        return $this->Query;
+        return $this->query;
     }
 
     /**
@@ -483,7 +483,6 @@ class Parser
         $this->dateformat = $dateformat;
     }
 
-
     /**
      * Set the throwExceptions flag
      *
@@ -501,7 +500,6 @@ class Parser
         $this->throwExceptions = filter_var($throwExceptions, FILTER_VALIDATE_BOOLEAN);
     }
 
-
     /**
      * Set the path to use for on-disk cache. If NULL, cache is disabled.
      *
@@ -512,7 +510,6 @@ class Parser
         $this->cachePath = $path;
     }
 
-
     /**
      * Return the list of rate limited servers
      *
@@ -522,7 +519,6 @@ class Parser
     {
         return $this->rateLimitedServers;
     }
-
 
     /**
      * Remove a specific server from the list of rate limited servers.
@@ -539,7 +535,6 @@ class Parser
         return ($key !== false);
     }
 
-
     /**
      * Clear the list of rate limited servers
      *
@@ -548,10 +543,9 @@ class Parser
     public function clearRateLimitedServers()
     {
         $count = count($this->rateLimitedServers);
-        $this->rateLimitedServers = array();
+        $this->rateLimitedServers = [];
         return $count;
     }
-
 
     /**
      * Set a custom config file.
@@ -565,7 +559,6 @@ class Parser
         $this->customConfigFile = $iniFile;
     }
 
-
     /**
      * Set a proxy config file.
      * Set to NULL to clear.
@@ -576,7 +569,6 @@ class Parser
     {
         $this->proxyConfigFile = $iniFile;
     }
-
 
     /**
      * Set a custom template namespace
@@ -590,7 +582,6 @@ class Parser
         $this->customTemplateNamespace = $namespace;
     }
 
-
     /**
      * Set a custom adapter namespace.
      * Adapters in this namespace will override the default adapters.
@@ -603,7 +594,6 @@ class Parser
         $this->customAdapterNamespace = $namespace;
     }
 
-
     /**
      * Add a custom domain group for DomainParser. This will override the built-in domain groups.
      *
@@ -614,7 +604,6 @@ class Parser
     {
         $this->customDomainGroups[$groupName] = $tldList;
     }
-
 
     /**
      * Set the custom domain groups for DomainParser. The array should be in the same format as in Additional.php.
@@ -627,8 +616,6 @@ class Parser
         $this->customDomainGroups = $domainGroups;
     }
 
-
-
     /**
      * Return the current configured proxy config file location
      *
@@ -638,7 +625,6 @@ class Parser
     {
         return $this->proxyConfigFile;
     }
-
 
     /**
      * Return the currently configured custom adapter namespace.

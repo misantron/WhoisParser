@@ -15,15 +15,19 @@ use Novutec\WhoisParser\Result\Result;
  */
 abstract class KeyValue extends AbstractTemplate
 {
+    /**
+     * @var array
+     */
+    protected $data = [];
 
-    protected $data = array();
-
-    protected $regexKeys = array();
-
+    /**
+     * @var array
+     */
+    protected $regexKeys = [];
 
     /**
      * @param Result $result
-     * @param $rawdata
+     * @param string $rawdata
      * @throws ReadErrorException
      * @throws RateLimitException
      */
@@ -49,10 +53,13 @@ abstract class KeyValue extends AbstractTemplate
         }
     }
 
-
-    protected function parseRawData($rawdata)
+    /**
+     * @param string $rawdata
+     * @return array
+     */
+    protected function parseRawData(string $rawdata)
     {
-        $data = array();
+        $data = [];
         $rawdata = explode("\n", $rawdata);
         foreach ($rawdata as $line) {
             $line = trim($line);
@@ -78,8 +85,14 @@ abstract class KeyValue extends AbstractTemplate
         return $data;
     }
 
-
-    protected function parseKeyValues($result, $dataArray, $regexKeys, $append = false)
+    /**
+     * @param Result $result
+     * @param array $dataArray
+     * @param array $regexKeys
+     * @param bool $append
+     * @return int
+     */
+    protected function parseKeyValues(Result $result, array $dataArray, array $regexKeys, bool $append = false)
     {
         $matches = 0;
         foreach ($dataArray as $key => $value) {
@@ -100,7 +113,6 @@ abstract class KeyValue extends AbstractTemplate
 
         return $matches;
     }
-
 
     /**
      * Perform any necessary reformatting of data (for example, reformatting dates)
