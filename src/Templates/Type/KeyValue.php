@@ -2,7 +2,9 @@
 
 namespace Novutec\WhoisParser\Templates\Type;
 
+use Novutec\WhoisParser\Exception\RateLimitException;
 use Novutec\WhoisParser\Exception\ReadErrorException;
+use Novutec\WhoisParser\Result\Result;
 
 /**
  * Parser based on simple responses containing only 'key: value' entries.
@@ -20,9 +22,10 @@ abstract class KeyValue extends AbstractTemplate
 
 
     /**
-     * @param \Novutec\WhoisParser\Result\Result $result
+     * @param Result $result
      * @param $rawdata
-     * @throws \Novutec\WhoisParser\Exception\ReadErrorException if data was read from the whois response
+     * @throws ReadErrorException
+     * @throws RateLimitException
      */
     public function parse($result, $rawdata)
     {

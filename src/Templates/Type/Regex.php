@@ -2,13 +2,21 @@
 
 namespace Novutec\WhoisParser\Templates\Type;
 
-abstract class Regex extends AbstractTemplate {
+use Novutec\WhoisParser\Exception\RateLimitException;
+use Novutec\WhoisParser\Result\Result;
 
+/**
+ * Class Regex
+ * @package Novutec\WhoisParser\Templates\Type
+ */
+abstract class Regex extends AbstractTemplate
+{
     protected $convertFromHtml = false;
 
     /**
-     * @param \Novutec\WhoisParser\Result\Result $result
+     * @param Result $result
      * @param $rawdata
+     * @throws RateLimitException
      */
     public function parse($result, $rawdata)
     {
@@ -39,7 +47,7 @@ abstract class Regex extends AbstractTemplate {
                         $value = end($itemMatches);
                         if ($this->convertFromHtml) {
                             if (is_array($value)) {
-                                foreach($value as $k => $v) {
+                                foreach ($value as $k => $v) {
                                     $value[$k] = html_entity_decode(strip_tags($v));
                                 }
                             } else {
@@ -58,7 +66,7 @@ abstract class Regex extends AbstractTemplate {
         if (isset($result->network->contacts)) {
             // lookup all left over handles in network
             foreach ($result->network->contacts as $type => $handle) {
-                if (! is_string($handle)) {
+                if (!is_string($handle)) {
                     continue;
                 }
 

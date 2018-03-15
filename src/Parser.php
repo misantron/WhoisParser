@@ -24,11 +24,6 @@
  */
 namespace Novutec\WhoisParser;
 
-/**
- * @see Result/Result
- */
-require_once 'Result/Result.php';
-
 use Novutec\WhoisParser\Adapter\AbstractAdapter;
 use Novutec\WhoisParser\Config\Config;
 use Novutec\WhoisParser\Exception\AbstractException;
@@ -174,11 +169,10 @@ class Parser
 
     /**
 	 * Lookup an IP address (ipv4 and ipv6) and domain names
-	 * 
-	 * @throws NoQueryException
-	 * @throws instance of AbstractException if throwExceptions = true
+	 *
+	 * @throws AbstractException if throwExceptions = true
 	 * @param  string $query
-	 * @return object
+	 * @return mixed
 	 */
     public function lookup($query = '')
     {
@@ -231,7 +225,7 @@ class Parser
         // call cleanUp method
         $this->Result->cleanUp($this->Config->getCurrent(), $this->dateformat);
         
-        // peparing output of Result by format
+        // preparing output of Result by format
         switch ($this->format) {
             case 'json':
                 return $this->Result->toJson();
@@ -252,9 +246,10 @@ class Parser
 
     /**
      * Parses the given query to get either the domain name or an IP address
-     * 
+     *
      * @param  string $query
      * @return void
+     * @throws \Novutec\DomainParser\instance
      */
     private function prepare($query)
     {

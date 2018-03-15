@@ -405,8 +405,7 @@ class Result extends AbstractResult
      */
     public function toXml()
     {
-        $xml = new \SimpleXMLElement(
-                '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><whois></whois>');
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><whois></whois>');
         
         $output = get_object_vars($this);
         
@@ -487,7 +486,9 @@ class Result extends AbstractResult
 
     /**
      * cleanUp method will be called before output
-     * 
+     *
+     * @param $config
+     * @param $dateformat
      * @return void
      */
     public function cleanUp($config, $dateformat)

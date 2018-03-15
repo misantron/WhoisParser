@@ -22,6 +22,7 @@
 /**
  * @namespace Novutec\WhoisParser\Adapter
  */
+
 namespace Novutec\WhoisParser\Adapter;
 
 use Novutec\WhoisParser\Exception\ConnectErrorException;
@@ -73,8 +74,8 @@ class Socket extends AbstractAdapter
         usleep(1);
         stream_set_blocking($this->sock, 1);
 
-        if  (is_object($query)) {
-            if (isset($query->tld) && ! isset($query->idnFqdn)) {
+        if (is_object($query)) {
+            if (isset($query->tld) && !isset($query->idnFqdn)) {
                 $lookupString = str_replace('%domain%', $query->tld, $config['format']);
             } elseif (isset($query->ip)) {
                 $lookupString = str_replace('%domain%', $query->ip, $config['format']);
@@ -111,7 +112,7 @@ class Socket extends AbstractAdapter
             }
 
             $rawdata .= $recv;
-        } while ((! feof($this->sock)));
+        } while ((!feof($this->sock)));
 
         // remove prepended response of proxy server
         if (is_array($this->proxyList)) {
@@ -143,13 +144,13 @@ class Socket extends AbstractAdapter
         if (is_array($this->proxyList)) {
             $proxyConfig = $this->getRandomProxy();
             $this->sock = $this->connectToProxy($proxyConfig, $config);
-        }
-        else {
+        } else {
             $errno = $errstr = null;
-            $this->sock = @stream_socket_client('tcp://' . $config['server'] . ':' . $config['port'], $errno, $errstr, 30);
+            $this->sock = @stream_socket_client('tcp://' . $config['server'] . ':' . $config['port'], $errno, $errstr,
+                30);
         }
 
-        if (! is_resource($this->sock)) {
+        if (!is_resource($this->sock)) {
             throw new ConnectErrorException(
                 'Unable to connect to ' . $config['server'] . ':' . $config['port'] . ' or missing configuration for this template.'
             );
@@ -188,7 +189,7 @@ class Socket extends AbstractAdapter
         if ($proxyConfig['type'] == 'http') {
             $proxyScheme = 'tcp://';
         } elseif ($proxyConfig['type'] == 'https') {
-            if (! extension_loaded('openssl')) {
+            if (!extension_loaded('openssl')) {
                 throw new ConnectErrorException('OpenSSL extension must be enabled to use a proxy over https');
             }
             $proxyScheme = 'ssl://';
@@ -198,7 +199,7 @@ class Socket extends AbstractAdapter
 
         $socket = @stream_socket_client($proxyScheme . $proxyHost, $errno, $errstr, 30);
 
-        if (! is_resource($socket)) {
+        if (!is_resource($socket)) {
             throw new ConnectErrorException('Unable to connect to proxy ' . $proxyScheme . $proxyHost);
         }
 
@@ -213,7 +214,7 @@ class Socket extends AbstractAdapter
         $request[] = 'Host: ' . $proxyConfig['host'];
         $request[] = 'Proxy-Connection: keep-alive';
 
-        if (! empty($proxyConfig['username']) && ! empty($proxyConfig['password'])) {
+        if (!empty($proxyConfig['username']) && !empty($proxyConfig['password'])) {
             $auth = $proxyConfig['username'] . ':' . $proxyConfig['password'];
             $auth = base64_encode($auth);
             $request[] = 'Proxy-Authorization: Basic ' . $auth;
@@ -258,7 +259,8 @@ class Socket extends AbstractAdapter
      * @throws ConnectErrorException
      * @return array Returns an associative array on success
      */
-    private function getRandomProxy() {
+    private function getRandomProxy()
+    {
         $i = count($this->proxyList);
 
         // check if random configuration is valid, and repeat if it's not
@@ -267,9 +269,9 @@ class Socket extends AbstractAdapter
             $proxyConfig = $this->proxyList[$randKey];
 
             // return configuration only if basic options are set
-            if (isset($proxyConfig['enabled']) && $proxyConfig['enabled'] == 1 && ! empty($proxyConfig['port'])
-                && ! empty($proxyConfig['host']) && ! empty($proxyConfig['type'])) {
-                    return $proxyConfig;
+            if (isset($proxyConfig['enabled']) && $proxyConfig['enabled'] == 1 && !empty($proxyConfig['port'])
+                && !empty($proxyConfig['host']) && !empty($proxyConfig['type'])) {
+                return $proxyConfig;
             }
 
             unset($this->proxyList[$randKey]);
